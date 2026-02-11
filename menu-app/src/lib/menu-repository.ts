@@ -31,15 +31,31 @@ export async function getRandomMenus(count: number): Promise<Menu[]> {
   const supabase = getSupabaseClient();
 
   if (supabase) {
-    const { data, error } = await supabase.from("menus").select("id,name,category");
-    if (!error && data && data.length > 0) {
-      return shuffle(
-        data.map((menu) => ({
-          id: String(menu.id),
-          name: menu.name,
-          category: menu.category ?? "기타",
-        })),
-      ).slice(0, desiredCount);
+    try {
+      const { data, error } = await supabase.from("menus").select("id,name,category");
+
+      if (error) {
+        console.error("[supabase] Failed to fetch menus from public.menus", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
+      } else if (data && data.length > 0) {
+        return shuffle(
+          data.map((menu) => ({
+            id: String(menu.id),
+            name: menu.name,
+            category: menu.category ?? "Other",
+          })),
+        ).slice(0, desiredCount);
+      } else {
+        console.warn(
+          "[supabase] Query succeeded but returned no rows from public.menus. Using fallback menus.",
+        );
+      }
+    } catch (error) {
+      console.error("[supabase] Unexpected error while fetching menus", error);
     }
   }
 
